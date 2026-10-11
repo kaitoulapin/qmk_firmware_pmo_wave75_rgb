@@ -54,8 +54,12 @@
   `keyboards/hm/wave75_rgb/WAVE 75 RGB.JSON`，在 Lighting → Backlight → Effect
   选择 `Random Reactive`（编号 47，随机按键渐灭）。按下的键随机亮起一种颜色，
   随后渐灭；松开不会重新触发。Brightness 控制亮度，Effect Speed 越高渐灭越快
-  （约 3 秒至 0.3 秒）。Logo 和状态指示灯仍由原有逻辑控制。
+  （目标时长 1 秒至 0.3 秒，已在该灯效内部补偿下述计时偏差，用户试用确认观感可接受，精确时长尚未测量）。Logo 和状态指示灯仍由原有逻辑控制。
   厂商旧 JSON 仅列出 0～45，无法选择新增效果。
+  渐灭固定每次按下生成的随机色，以 16 位精度计算平方衰减包络，最后缩放 RGB 通道并四舍五入，
+  减少中间量化并缩短微弱亮度尾段。使用 QMK 帧时间，未点亮的 LED 跳过颜色计算，松开不会重新触发。
+  根据 HAL 记录的 AHB 时钟和当前 SysTick 重装值换算该灯效的持续时间，不改变全局系统计时。
+  RGB 刷新间隔下限设为 5 个系统 tick，按当前配置约 7.5ms；实际帧率仍取决于驱动和运行负载。
 
 - `lib/rdr_lib/librdrcommon.a` 是厂商预编译库（无法提供源码），入库以保证 clone 后可直接编译。
   `*.a` 默认被 `.gitignore` 忽略，仓库里已为该文件加了例外规则。
@@ -64,6 +68,40 @@
   导入 `keyboards/hm/wave75_rgb/WAVE 75 RGB.JSON`，再切到 Configure 配置。
 
 
+
+## 已知问题：FS026 系统计时与时钟配置不匹配
+
+记录日期：2026-10-11。状态：已核对源码及固件、厂商库的反汇编，全局计时尚未修复，未在硬件上测量系统 tick。
+后续 Random Reactive 测试版本已局部换算持续时间，并把刷新间隔改为 5 tick；以下现象和表格记录补偿前的版本。
+
+现象：Random Reactive 的代码设定最慢 1000ms、最快 300ms，用户实测最慢约 2 秒、最快约 0.5 秒。
+不能把代码中的毫秒值直接当作已验证的真实时长，也不能仅靠缩短灯效参数掩盖计时误差。
+
+已确认的静态证据：
+
+- `keyboards/hm/wave75_rgb/chconf.h` 设置 `CH_CFG_ST_FREQUENCY = 1000`，QMK 按每个系统 tick 为 1ms 换算。
+- `lib/chibios-contrib/os/hal/ports/ES32/FS026/hal_lld.h` 默认选择 HRC48（48MHz），AHB 不分频，PLL 未启用。
+  当前 ELF 的 `rcu_initStruct` 数据与此一致；其中存在 72MHz PLL 参数不代表实际启用了 PLL。
+- `lib/chibios-contrib/os/hal/ports/ES32/LLD/TIMv1/hal_st_lld.c` 的 `st_lld_init()`
+  写死 `SysTick->LOAD = 72000 - 1`，`CTRL = 0x10007`。当前 ELF 反汇编确认写入重装值 `0x1193F`（71999）。
+- `platforms/chibios/timer.c` 的 `timer_read32()` 根据配置频率换算系统 tick；当前 ELF 没有补偿上述时钟差异。
+- 厂商 `librdrcommon.a` 的 `User_Systime_Init` 配置独立硬件定时器，不修改 SysTick 重装值。
+  检查到的休眠／唤醒路径会关闭、恢复 SysTick 中断，唤醒后选择 HRC48，未修改其重装值。
+
+按 48MHz 工作时钟推算，每个 tick 实际为 `72000 / 48000000 = 1.5ms`：
+
+| 代码设定 | 按时钟配置推算的真实时间 |
+| --- | --- |
+| 渐灭 1000ms | 约 1.5 秒 |
+| 渐灭 300ms | 约 0.45 秒 |
+| RGB 刷新间隔下限 8ms | 约 12ms |
+
+上述倍率能解释时长偏长及最快档约 0.5 秒，但不能完全解释最慢档约 2 秒，
+也尚未证明它是灯光卡顿的唯一原因。实际工作时钟、tick 倍率和灯光提交延迟仍需硬件验证。
+
+后续修复方向：根据实际系统／AHB 时钟及 `CH_CFG_ST_FREQUENCY` 计算 SysTick 重装值，
+并验证冷启动、休眠唤醒后的计时一致性。修改会影响全局定时，需回归灯效、Logo、休眠和 USB／无线连接行为。
+暂未修改子模块中的计时实现；原有头文件宏修复是另一项独立问题。
 
 # Quantum Mechanical Keyboard Firmware
 

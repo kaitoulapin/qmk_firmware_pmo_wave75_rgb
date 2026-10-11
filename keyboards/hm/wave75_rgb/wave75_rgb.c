@@ -20,6 +20,7 @@
 #include "random_reactive.h"
 #include <stdlib.h>
 #include "logo_speed.h"
+#include "sync_timer.h"
 
 // The vendor animations consume this phase; their own stepping is disabled
 // only during rendering, leaving their status indicators and settings intact.
@@ -64,6 +65,17 @@ void wave75_logo_save_speed(void) {
 uint8_t wave75_reactive_hue[RGB_MATRIX_LED_COUNT];
 uint32_t wave75_reactive_birth[RGB_MATRIX_LED_COUNT];
 bool wave75_reactive_active[RGB_MATRIX_LED_COUNT];
+
+uint16_t wave75_reactive_duration_ticks(uint16_t milliseconds) {
+    // Correct only this effect's duration, without changing the vendor's OS tick.
+    // The FS026 port records the AHB clock during HAL initialization.
+    extern unsigned int SystemFrequency_AHBClk;
+    const uint32_t clock_khz = SystemFrequency_AHBClk / 1000;
+    const uint32_t reload = SysTick->LOAD + 1;
+    if (!clock_khz || !reload) return milliseconds;
+    uint32_t ticks = ((uint32_t)milliseconds * clock_khz + reload - 1) / reload;
+    return ticks ? ticks : 1;
+}
 
 void matrix_io_delay(void) {
 }
@@ -190,7 +202,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {   /*键盘只�
         for (uint8_t i = 0; i < count; i++) {
             uint8_t led = leds[i];
             wave75_reactive_hue[led] = (uint8_t)rand();
-            wave75_reactive_birth[led] = timer_read32();
+            wave75_reactive_birth[led] = sync_timer_read32();
             wave75_reactive_active[led] = true;
         }
     }
