@@ -2,7 +2,7 @@
 	"name": "WAVE 75 RGB",
 	"vendorId": "0x36B0",
 	"productId": "0x3009",
-	"keycodes": ["qmk_lighting"],
+	"keycodes": ["qmk_rgb_matrix_keycodes"],
 	"menus":
 	[
 		{
