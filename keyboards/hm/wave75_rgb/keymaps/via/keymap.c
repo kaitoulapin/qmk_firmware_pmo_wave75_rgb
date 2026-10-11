@@ -15,6 +15,7 @@
  */
 #include QMK_KEYBOARD_H
 #include "../../lib/rdr_lib/rdr_common.h"
+#include "logo_speed.h"
 
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [0] = LAYOUT_tkl_ansi(
@@ -65,9 +66,21 @@ const uint16_t PROGMEM encoder_map[][NUM_ENCODERS][2] = {
 // driver enabled here, so channel 2 would fall through to the default handler
 // and be reported as unhandled. Route it to the library instead.
 void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
+    if (length < 3) return;
     uint8_t *channel_id = &(data[1]);
 
     if (*channel_id == id_qmk_rgblight_channel) {
+        if (data[2] == id_qmk_rgblight_effect_speed && length >= 4) {
+            if (data[0] == id_custom_set_value) {
+                wave75_logo_set_speed(data[3]);
+                return;
+            }
+            if (data[0] == id_custom_get_value) {
+                data[3] = wave75_logo_get_speed();
+                return;
+            }
+        }
+        if (data[0] == id_custom_save) wave75_logo_save_speed();
         User_Via_Qmk_Logo_Command(data, length);
         return;
     }

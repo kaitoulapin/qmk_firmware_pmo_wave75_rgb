@@ -41,6 +41,10 @@
 
 ## 说明
 
+- Logo 灯的 `Speed (%)` 支持 0～100 连续调速，0 为暂停动画，数值越大越快。
+  `LG_SPI` / `LG_SPD` 每次增减 5 个百分点。速度通过 VIA 保存后可跨重启保留；
+  原有 Logo 灯效、亮度、颜色及状态指示继续由厂商库处理。
+
 - 随机按键渐灭：刷入本仓库的 `via` 固件，导入仓库中的
   `keyboards/hm/wave75_rgb/WAVE 75 RGB.JSON`，在 Lighting → Backlight → Effect
   选择 `Random Reactive`（编号 47，随机按键渐灭）。按下的键随机亮起一种颜色，

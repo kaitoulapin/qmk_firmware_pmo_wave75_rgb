@@ -19,6 +19,31 @@
 #include "usb_device_state.h"
 #include "random_reactive.h"
 #include <stdlib.h>
+#include "logo_speed.h"
+
+// The vendor animations consume this phase; their own stepping is disabled
+// only during rendering, leaving their status indicators and settings intact.
+extern uint8_t Logo_Play_Point;
+static uint8_t logo_speed_percent = 50;
+static uint32_t logo_last_frame;
+static uint32_t logo_phase_fraction;
+
+uint8_t wave75_logo_get_speed(void) {
+    return logo_speed_percent;
+}
+
+void wave75_logo_set_speed(uint8_t percent) {
+    logo_speed_percent = percent > 100 ? 100 : percent;
+}
+
+void wave75_logo_save_speed(void) {
+    uint32_t saved = 0x4C530100u | logo_speed_percent;
+#if EECONFIG_USER_DATA_SIZE > 0
+    eeconfig_update_user_datablock(&saved, 0, sizeof(saved));
+#else
+    eeconfig_update_user(saved);
+#endif
+}
 
 uint8_t wave75_reactive_hue[RGB_MATRIX_LED_COUNT];
 uint32_t wave75_reactive_birth[RGB_MATRIX_LED_COUNT];
@@ -63,7 +88,27 @@ led_config_t g_led_config = { {
 } };
 
 bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
+    // Advance once per frame even if QMK renders the LED buffer in chunks.
+    if (led_min == 0) {
+        uint32_t now = timer_read32();
+        uint32_t elapsed = now - logo_last_frame;
+        logo_last_frame = now;
+        if (elapsed > 100) elapsed = 100; // Avoid jumps after sleep/wakeup.
+        if (logo_speed_percent != 0) {
+            logo_phase_fraction += elapsed * (4 + 2 * logo_speed_percent);
+            uint32_t steps = logo_phase_fraction / 1000;
+            logo_phase_fraction %= 1000;
+            uint16_t period = (Keyboard_Info.Logo_Mode == LOGO_BREATH_MODE || Keyboard_Info.Logo_Mode == LOGO_WAVE_DS_MODE) ? 128 : 256;
+            Logo_Play_Point = (Logo_Play_Point + period - steps % period) % period;
+        }
+    }
+    if (Keyboard_Info.Logo_Mode == LOGO_BREATH_MODE || Keyboard_Info.Logo_Mode == LOGO_WAVE_DS_MODE) {
+        Logo_Play_Point %= 128;
+    }
+    uint8_t vendor_speed = Keyboard_Info.Logo_Speed;
+    Keyboard_Info.Logo_Speed = 0;
     User_Led_Show();
+    Keyboard_Info.Logo_Speed = vendor_speed;
     return false;
 }
 
@@ -90,9 +135,31 @@ void board_init(void) {
 
 void keyboard_post_init_user(void) {
     User_Keyboard_Post_Init();
+    uint32_t saved = 0;
+#if EECONFIG_USER_DATA_SIZE > 0
+    eeconfig_read_user_datablock(&saved, 0, sizeof(saved));
+#else
+    saved = eeconfig_read_user();
+#endif
+    if ((saved & 0xFFFFFF00u) == 0x4C530100u && (saved & 0xFFu) <= 100) {
+        logo_speed_percent = saved & 0xFFu;
+    } else {
+        wave75_logo_set_speed(Keyboard_Info.Logo_Speed * 25);
+    }
+    logo_last_frame = timer_read32();
 }
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {   /*键盘只要有按键按下就会调用此函数*/
+    if (keycode == LOGO_SPI || keycode == LOGO_SPD) {
+        if (record->event.pressed) {
+            int16_t speed = logo_speed_percent + (keycode == LOGO_SPI ? 5 : -5);
+            wave75_logo_set_speed(speed < 0 ? 0 : speed > 100 ? 100 : speed);
+            wave75_logo_save_speed();
+        }
+        Usb_Change_Mode_Delay = 0;
+        Usb_Change_Mode_Wakeup = false;
+        return false;
+    }
     if (record->event.pressed && record->event.key.row < MATRIX_ROWS && record->event.key.col < MATRIX_COLS && rgb_matrix_get_mode() == RGB_MATRIX_CUSTOM_RANDOM_REACTIVE) {
         uint8_t leds[RGB_MATRIX_LED_COUNT];
         uint8_t count = rgb_matrix_map_row_column_to_led(record->event.key.row, record->event.key.col, leds);
