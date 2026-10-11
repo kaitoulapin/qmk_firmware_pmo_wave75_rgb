@@ -70,6 +70,17 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
     uint8_t *channel_id = &(data[1]);
 
     if (*channel_id == id_qmk_rgblight_channel) {
+        // Custom Logo values 5/6: independent speed/brightness follow switches.
+        if ((data[2] == 5 || data[2] == 6) && length >= 4) {
+            if (data[0] == id_custom_set_value) {
+                wave75_logo_set_follow(data[2] == 6, data[3] != 0);
+                return;
+            }
+            if (data[0] == id_custom_get_value) {
+                data[3] = wave75_logo_get_follow(data[2] == 6);
+                return;
+            }
+        }
         if (data[2] == id_qmk_rgblight_effect_speed && length >= 4) {
             if (data[0] == id_custom_set_value) {
                 wave75_logo_set_speed(data[3]);

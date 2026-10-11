@@ -14,7 +14,17 @@
 					"content":
 					[
 						{
-							"showIf": "{id_qmk_rgblight_effect} != 0",
+							"label": "Follow Backlight Speed",
+							"type": "toggle",
+							"content": ["id_logo_follow_speed", 2, 5]
+						},
+						{
+							"label": "Follow Backlight Brightness",
+							"type": "toggle",
+							"content": ["id_logo_follow_brightness", 2, 6]
+						},
+						{
+							"showIf": "{id_qmk_rgblight_effect} != 0 && {id_logo_follow_brightness} == 0",
 							"label": "Brightness",
 							"type": "range",
 							"options": [0, 160],
@@ -36,7 +46,7 @@
 							]
 						},
 						{
-							"showIf": "{id_qmk_rgblight_effect} != 0",
+							"showIf": "{id_qmk_rgblight_effect} != 0 && {id_logo_follow_speed} == 0",
 							"label": "Speed (%)",
 							"type": "range",
 							"options": [0, 100],

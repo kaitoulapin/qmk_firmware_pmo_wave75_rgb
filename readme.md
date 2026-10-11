@@ -44,6 +44,11 @@
 - Logo 灯的 `Speed (%)` 支持 0～100 连续调速，0 为暂停动画，数值越大越快。
   `LG_SPI` / `LG_SPD` 每次增减 5 个百分点。速度通过 VIA 保存后可跨重启保留；
   原有 Logo 灯效、亮度、颜色及状态指示继续由厂商库处理。
+- Logo 菜单中的 `Follow Backlight Speed` 和 `Follow Backlight Brightness`
+  可分别启用速度和亮度跟随主灯。速度将主灯的 0～255 映射到 Logo 的 0～100%，
+  亮度使用主灯的亮度设定值；不同灯效的实际周期和瞬时亮度仍由各自动画决定。
+  跟随时隐藏对应的手动滑块，关闭跟随后恢复 Logo 原有手动参数。
+  两个开关均默认关闭，并与 Logo 速度一起通过 VIA 保存。
 
 - 随机按键渐灭：刷入本仓库的 `via` 固件，导入仓库中的
   `keyboards/hm/wave75_rgb/WAVE 75 RGB.JSON`，在 Lighting → Backlight → Effect
