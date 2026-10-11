@@ -82,9 +82,9 @@
 								[ "cycle_all", 12 ],
 								[ "cycle_left_right", 13 ],
 								[ "cycle_up_down", 14 ],
-								[ "cycle_out_in", 15 ],
-								[ "cycle_out_in_dual", 16 ],
-								[ "rainbow_moving_chevron", 17 ],
+								[ "rainbow_moving_chevron", 15 ],
+								[ "cycle_out_in", 16 ],
+								[ "cycle_out_in_dual", 17 ],
 								[ "cycle_pinwheel", 18 ],
 								[ "cycle_spiral", 19 ],
 								[ "dual_beacon", 20 ],
@@ -110,10 +110,11 @@
 								[ "solid_splash", 40 ],
 								[ "solid_multisplash", 41 ],
 								[ "starlight", 42 ],
-								[ "starlight_dual_hue", 43 ],
-								[ "starlight_dual_sat", 44 ],
+								[ "starlight_dual_sat", 43 ],
+								[ "starlight_dual_hue", 44 ],
 								[ "riverflow", 45 ],
-								[ "heart_aemeath", 46 ]
+								[ "heart_aemeath", 46 ],
+								[ "Random Reactive", 47 ]
 							]
 						},
 						{
@@ -124,7 +125,7 @@
 							"content": ["id_qmk_rgb_matrix_effect_speed", 3, 3]
 						},
 						{
-							"showIf": "{id_qmk_rgb_matrix_effect} != 0 && {id_qmk_rgb_matrix_effect} != 24 && {id_qmk_rgb_matrix_effect} != 28 && {id_qmk_rgb_matrix_effect} != 29 && {id_qmk_rgb_matrix_effect} != 32",
+							"showIf": "{id_qmk_rgb_matrix_effect} != 0 && {id_qmk_rgb_matrix_effect} != 24 && {id_qmk_rgb_matrix_effect} != 28 && {id_qmk_rgb_matrix_effect} != 29 && {id_qmk_rgb_matrix_effect} != 32 && {id_qmk_rgb_matrix_effect} != 47",
 							"label": "Color",
 							"type": "color",
 							"content": ["id_qmk_rgb_matrix_color", 3, 4]

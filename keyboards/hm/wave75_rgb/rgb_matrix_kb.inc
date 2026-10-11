@@ -312,3 +312,29 @@ static bool HEART_AEMEATH(effect_params_t *params) {
 }
 
 #endif // RGB_MATRIX_CUSTOM_EFFECT_IMPLS
+
+RGB_MATRIX_EFFECT(RANDOM_REACTIVE)
+#ifdef RGB_MATRIX_CUSTOM_EFFECT_IMPLS
+#include "random_reactive.h"
+
+static bool RANDOM_REACTIVE(effect_params_t *params) {
+    RGB_MATRIX_USE_LIMITS(led_min, led_max);
+    const uint32_t now = timer_read32();
+    const uint16_t duration = 3000 - (uint32_t)rgb_matrix_config.speed * 2700 / 255;
+    for (uint8_t i = led_min; i < led_max; i++) {
+        if (params->init) wave75_reactive_active[i] = false;
+        RGB_MATRIX_TEST_LED_FLAGS();
+        const uint32_t elapsed = now - wave75_reactive_birth[i];
+        uint8_t value = 0;
+        if (wave75_reactive_active[i] && elapsed < duration) {
+            value = (uint32_t)rgb_matrix_config.hsv.v * (duration - elapsed) / duration;
+        } else {
+            wave75_reactive_active[i] = false;
+        }
+        hsv_t hsv = {wave75_reactive_hue[i], 255, value};
+        rgb_t rgb = rgb_matrix_hsv_to_rgb(hsv);
+        rgb_matrix_set_color(i, rgb.r, rgb.g, rgb.b);
+    }
+    return rgb_matrix_check_finished_leds(led_max);
+}
+#endif

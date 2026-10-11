@@ -17,6 +17,12 @@
 
 #include "../../lib/rdr_lib/rdr_common.h"
 #include "usb_device_state.h"
+#include "random_reactive.h"
+#include <stdlib.h>
+
+uint8_t wave75_reactive_hue[RGB_MATRIX_LED_COUNT];
+uint32_t wave75_reactive_birth[RGB_MATRIX_LED_COUNT];
+bool wave75_reactive_active[RGB_MATRIX_LED_COUNT];
 
 void matrix_io_delay(void) {
 }
@@ -87,6 +93,16 @@ void keyboard_post_init_user(void) {
 }
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {   /*键盘只要有按键按下就会调用此函数*/
+    if (record->event.pressed && record->event.key.row < MATRIX_ROWS && record->event.key.col < MATRIX_COLS && rgb_matrix_get_mode() == RGB_MATRIX_CUSTOM_RANDOM_REACTIVE) {
+        uint8_t leds[RGB_MATRIX_LED_COUNT];
+        uint8_t count = rgb_matrix_map_row_column_to_led(record->event.key.row, record->event.key.col, leds);
+        for (uint8_t i = 0; i < count; i++) {
+            uint8_t led = leds[i];
+            wave75_reactive_hue[led] = (uint8_t)rand();
+            wave75_reactive_birth[led] = timer_read32();
+            wave75_reactive_active[led] = true;
+        }
+    }
     Usb_Change_Mode_Delay = 0;                                      /*只要有按键就不会进入休眠*/
     Usb_Change_Mode_Wakeup = false;
 

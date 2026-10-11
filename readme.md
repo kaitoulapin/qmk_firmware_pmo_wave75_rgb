@@ -41,6 +41,13 @@
 
 ## 说明
 
+- 随机按键渐灭：刷入本仓库的 `via` 固件，导入仓库中的
+  `keyboards/hm/wave75_rgb/WAVE 75 RGB.JSON`，在 Lighting → Backlight → Effect
+  选择 `Random Reactive`（编号 47，随机按键渐灭）。按下的键随机亮起一种颜色，
+  随后渐灭；松开不会重新触发。Brightness 控制亮度，Effect Speed 越高渐灭越快
+  （约 3 秒至 0.3 秒）。Logo 和状态指示灯仍由原有逻辑控制。
+  厂商旧 JSON 仅列出 0～45，无法选择新增效果。
+
 - `lib/rdr_lib/librdrcommon.a` 是厂商预编译库（无法提供源码），入库以保证 clone 后可直接编译。
   `*.a` 默认被 `.gitignore` 忽略，仓库里已为该文件加了例外规则。
   SHA256：`CEA2276AE9D5B092F81536F7BCE68BBDCC37DA0C1B3D0F1D8F665A762294F94B`
