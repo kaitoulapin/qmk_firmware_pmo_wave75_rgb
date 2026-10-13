@@ -258,9 +258,9 @@ typedef enum {
 #define LOGO_MIN_SATURATION         (255)
 #define SATURATION_LEVEL            (15)
 
-#define LOGO_MAX_BRIGHTNESS         (140)
+#define LOGO_MAX_BRIGHTNESS         (255)
 #define LOGO_MIN_BRIGHTNESS         (0)
-#define BRIGHTNESS_LEVEL            (14)
+#define BRIGHTNESS_LEVEL            (16)
 
 #define LOGO_MAX_SPEED              (4)
 #define LOGO_MIN_SPEED              (0)
@@ -270,7 +270,7 @@ typedef enum {
 #define INIT_LOGO_MODE              (LOGO_WAVE_RGB_MODE)
 #define INIT_LOGO_COLOUR            (LOGO_MIN_COLOUR)
 #define INIT_LOGO_SATURATION        (LOGO_MAX_SATURATION)
-#define INIT_LOGO_BRIGHTNESS        (LOGO_MAX_BRIGHTNESS)
+#define INIT_LOGO_BRIGHTNESS        (140)
 #define INIT_LOGO_SPEED             (2)
 
 void User_Via_Qmk_Logo_Get_Value(uint8_t *data);

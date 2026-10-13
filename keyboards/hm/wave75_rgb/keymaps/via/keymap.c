@@ -71,6 +71,20 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
     uint8_t *channel_id = &(data[1]);
 
     if (*channel_id == id_qmk_rgblight_channel) {
+        if (data[2] == 10 && data[0] != id_custom_save) {
+            if (length < 4) return;
+            if (data[0] == id_custom_set_value) wave75_logo_set_limit(data[3] != 0);
+            else if (data[0] == id_custom_get_value) data[3] = wave75_logo_get_limit();
+            else *data = id_unhandled;
+            return;
+        }
+        if (data[2] == id_qmk_rgblight_brightness && data[0] != id_custom_save) {
+            if (length < 4) return;
+            if (data[0] == id_custom_set_value) wave75_logo_set_brightness(data[3]);
+            else if (data[0] == id_custom_get_value) data[3] = wave75_logo_get_brightness();
+            else *data = id_unhandled;
+            return;
+        }
         if (data[2] >= 7 && data[2] <= 9) {
             if (data[0] == id_custom_save) {
                 wave75_logo_save_speed();

@@ -63,6 +63,7 @@ __attribute__((noinline)) void __wrap_rgb_matrix_set_color(int index, uint8_t re
             if (caller != start + indicator_calls[i].return_offset) continue;
             uint8_t zone = index >= 82 ? (wave75_lighting_settings.follow_brightness ? rgb_matrix_get_val() : Keyboard_Info.Logo_Brightness) : rgb_matrix_get_val();
             uint8_t brightness = wave75_indicator_brightness(wave75_lighting_settings, zone);
+            if (index >= 82) brightness = wave75_logo_limit(wave75_lighting_settings, brightness);
             red = wave75_indicator_scale(red, brightness, indicator_calls[i].source_max);
             green = wave75_indicator_scale(green, brightness, indicator_calls[i].source_max);
             blue = wave75_indicator_scale(blue, brightness, indicator_calls[i].source_max);

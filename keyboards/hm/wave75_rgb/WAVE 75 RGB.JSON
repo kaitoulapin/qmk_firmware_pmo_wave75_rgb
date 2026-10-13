@@ -46,10 +46,15 @@
 							"content": ["id_logo_follow_brightness", 2, 6]
 						},
 						{
+							"label": "Limit Logo Brightness to 160",
+							"type": "toggle",
+							"content": ["id_logo_limit_brightness", 2, 10]
+						},
+						{
 							"showIf": "{id_qmk_rgblight_effect} != 0 && {id_logo_follow_brightness} == 0",
 							"label": "Brightness",
 							"type": "range",
-							"options": [0, 160],
+							"options": [0, 255],
 							"content": ["id_qmk_rgblight_brightness", 2, 1]
 						},
 						{
@@ -90,7 +95,7 @@
 						{
 							"label": "Brightness",
 							"type": "range",
-							"options": [0, 160],
+							"options": [0, 255],
 							"content": ["id_qmk_rgb_matrix_brightness", 3, 1]
 						},
 						{

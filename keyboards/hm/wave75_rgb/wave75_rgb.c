@@ -26,7 +26,7 @@
 // The vendor animations consume this phase; their own stepping is disabled
 // only during rendering, leaving their status indicators and settings intact.
 extern uint8_t Logo_Play_Point;
-wave75_lighting_settings_t wave75_lighting_settings = {.logo_speed = 50, .indicator_percent = 20, .follow_brightness = true};
+wave75_lighting_settings_t wave75_lighting_settings = {.logo_speed = 50, .indicator_percent = 20, .follow_brightness = true, .limit_logo_brightness = true};
 static uint32_t logo_last_frame;
 static uint32_t logo_phase_fraction;
 
@@ -57,6 +57,38 @@ void wave75_logo_save_speed(void) {
 #else
     eeconfig_update_user(saved);
 #endif
+}
+
+uint8_t wave75_logo_get_brightness(void) {
+    return Keyboard_Info.Logo_Brightness;
+}
+
+void wave75_logo_set_brightness(uint8_t brightness) {
+    Keyboard_Info.Logo_Brightness = brightness;
+}
+
+bool wave75_logo_get_limit(void) {
+    return wave75_lighting_settings.limit_logo_brightness;
+}
+
+void wave75_logo_set_limit(bool enabled) {
+    wave75_lighting_settings.limit_logo_brightness = enabled;
+}
+
+extern uint8_t Logo_Pwm_R, Logo_Pwm_G, Logo_Pwm_B;
+
+// Strong overrides precede the archive in the link. Preserve its color and
+// saturation logic, but use /255 scaling so the endpoints remain exact.
+void Logo_Pwm_Rgb_Updata(uint8_t brightness) {
+    Logo_Pwm_R = wave75_logo_rgb_channel(Logo_Pwm_R, Keyboard_Info.Logo_Saturation, brightness);
+    Logo_Pwm_G = wave75_logo_rgb_channel(Logo_Pwm_G, Keyboard_Info.Logo_Saturation, brightness);
+    Logo_Pwm_B = wave75_logo_rgb_channel(Logo_Pwm_B, Keyboard_Info.Logo_Saturation, brightness);
+}
+
+void Logo_Pwm_Ds_Updata(uint8_t phase) {
+    Logo_Pwm_R = wave75_logo_ds_channel(Logo_Pwm_R, Keyboard_Info.Logo_Saturation, phase, Keyboard_Info.Logo_Brightness);
+    Logo_Pwm_G = wave75_logo_ds_channel(Logo_Pwm_G, Keyboard_Info.Logo_Saturation, phase, Keyboard_Info.Logo_Brightness);
+    Logo_Pwm_B = wave75_logo_ds_channel(Logo_Pwm_B, Keyboard_Info.Logo_Saturation, phase, Keyboard_Info.Logo_Brightness);
 }
 
 uint8_t wave75_reactive_hue[RGB_MATRIX_LED_COUNT];
@@ -134,6 +166,7 @@ bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
     uint8_t vendor_speed = Keyboard_Info.Logo_Speed;
     uint8_t vendor_brightness = Keyboard_Info.Logo_Brightness;
     if (wave75_lighting_settings.follow_brightness) Keyboard_Info.Logo_Brightness = rgb_matrix_get_val();
+    Keyboard_Info.Logo_Brightness = wave75_logo_limit(wave75_lighting_settings, Keyboard_Info.Logo_Brightness);
     Keyboard_Info.Logo_Speed = 0;
     User_Led_Show();
     Keyboard_Info.Logo_Speed = vendor_speed;
@@ -177,6 +210,22 @@ void keyboard_post_init_user(void) {
 }
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {   /*键盘只要有按键按下就会调用此函数*/
+    if (keycode == LOGO_VAI || keycode == LOGO_VAD) {
+        if (record->event.pressed) {
+            if (wave75_lighting_settings.follow_brightness) {
+                if (keycode == LOGO_VAI) rgb_matrix_increase_val();
+                else rgb_matrix_decrease_val();
+            } else {
+                wave75_logo_set_brightness(wave75_brightness_step(wave75_logo_get_brightness(), keycode == LOGO_VAI));
+                // Use the archive's save command without its brightness clamp.
+                uint8_t save[] = {9, 2, 1};
+                User_Via_Qmk_Logo_Command(save, sizeof(save));
+            }
+        }
+        Usb_Change_Mode_Delay = 0;
+        Usb_Change_Mode_Wakeup = false;
+        return false;
+    }
     if (keycode == LOGO_SPI || keycode == LOGO_SPD) {
         if (record->event.pressed) {
             int16_t speed = wave75_lighting_settings.logo_speed + (keycode == LOGO_SPI ? 5 : -5);

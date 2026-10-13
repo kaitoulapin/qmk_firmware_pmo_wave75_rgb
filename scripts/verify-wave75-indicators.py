@@ -40,6 +40,22 @@ assert not normal.intersection(name for name, _, _ in calls)
 for name in normal:
     assert "<__wrap_rgb_matrix_set_color>" in firmware[name][1]
 
+# Check symbol interposition selected our endpoint-correct PWM routines.
+for name in ("Logo_Pwm_Rgb_Updata", "Logo_Pwm_Ds_Updata"):
+    address = firmware[name][0]
+    symbol_name = re.escape(name)
+    symbol_address = re.escape(f"0x{address:08x}")
+    link_map = Path(args.firmware).with_suffix(".map").read_text(encoding="utf-8")
+    assert re.search(rf"\.text\.{symbol_name}\s+{symbol_address}\s+0x[0-9a-f]+\s+[^\n]*[/\\]wave75_rgb\.o", link_map), name
+for name, helper in (
+    ("Logo_Wave_Rgb_mode_Show", "Logo_Pwm_Rgb_Updata"),
+    ("Logo_Spectrum_mode_Show", "Logo_Pwm_Rgb_Updata"),
+    ("Logo_Wave_Ds_mode_Show", "Logo_Pwm_Ds_Updata"),
+    ("Logo_Breath_mode_Show", "Logo_Pwm_Ds_Updata"),
+    ("Logo_Light_mode_Show", "Logo_Pwm_Ds_Updata"),
+):
+    assert f"<{helper}>" in firmware[name][1], name
+
 definition = json.loads((keyboard / "WAVE 75 RGB.JSON").read_text(encoding="utf-8"))
 controls = {}
 identifiers = set()
@@ -64,4 +80,7 @@ assert controls[2, 7]["type"] == "toggle"
 assert controls[2, 8]["type"] == "toggle"
 assert controls[2, 9]["options"] == [0, 100]
 assert controls[2, 9]["showIf"] == "{id_indicator_custom} == 1"
-print("16 indicator call sites, original output, factory exception, normal animations and VIA JSON verified")
+assert controls[2, 10]["type"] == "toggle"
+assert controls[2, 1]["options"] == [0, 255]
+assert controls[3, 1]["options"] == [0, 255]
+print("Indicator call sites, PWM overrides, factory exception and 0-255 VIA controls verified")
