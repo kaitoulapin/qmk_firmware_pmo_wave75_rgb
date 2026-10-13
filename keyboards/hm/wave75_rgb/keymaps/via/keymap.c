@@ -16,6 +16,7 @@
 #include QMK_KEYBOARD_H
 #include "../../lib/rdr_lib/rdr_common.h"
 #include "logo_speed.h"
+#include "indicator_lighting.h"
 
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     [0] = LAYOUT_tkl_ansi(
@@ -70,6 +71,23 @@ void via_custom_value_command_kb(uint8_t *data, uint8_t length) {
     uint8_t *channel_id = &(data[1]);
 
     if (*channel_id == id_qmk_rgblight_channel) {
+        if (data[2] >= 7 && data[2] <= 9) {
+            if (data[0] == id_custom_save) {
+                wave75_logo_save_speed();
+                return;
+            }
+            if (length < 4) return;
+            if (data[0] == id_custom_set_value) {
+                wave75_indicator_set_value(data[2], data[3]);
+                return;
+            }
+            if (data[0] == id_custom_get_value) {
+                data[3] = wave75_indicator_get_value(data[2]);
+                return;
+            }
+            *data = id_unhandled;
+            return;
+        }
         // Custom Logo values 5/6: independent speed/brightness follow switches.
         if ((data[2] == 5 || data[2] == 6) && length >= 4) {
             if (data[0] == id_custom_set_value) {

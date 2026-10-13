@@ -41,6 +41,17 @@
 
 ## 说明
 
+- Lighting → `Indicators` 控制状态提示的亮度。默认主灯区提示跟随主灯亮度，
+  Logo 区提示跟随 Logo 有效亮度（包括 `Follow Backlight Brightness`）。
+  `Allow Indicators Off` 默认关闭，保留最低 5% 亮度；打开后允许亮度为零。
+  `Custom Indicator Brightness` 默认关闭，打开后显示统一控制两个灯区的百分比滑块，
+  默认值 20%。100% 对应 RGB 输出 160，5% 对应 8；自定义值同样受最低亮度限制。
+  闪烁的熄灭阶段仍为黑色，关闭自定义后恢复灯区跟随，保存后跨重启保留。
+  覆盖 FN 连接、配对／重连、Win 锁、Caps、低电量、操作反馈、休眠设置及电量／充电提示。
+  正常动画和工厂测试保留原行为。需同时刷入新版固件并导入新版 JSON。
+  固件用链接包装识别厂商库中已核对的状态提示调用位置；构建会验证库 SHA256，
+  替换库版本时必须重新核对调用位置。全局系统计时问题不在此补丁中修复。
+
 - Logo 灯的 `Speed (%)` 支持 0～100 连续调速，0 为暂停动画，数值越大越快。
   `LG_SPI` / `LG_SPD` 每次增减 5 个百分点。速度通过 VIA 保存后可跨重启保留；
   原有 Logo 灯效、亮度、颜色及状态指示继续由厂商库处理。
@@ -68,6 +79,26 @@
   导入 `keyboards/hm/wave75_rgb/WAVE 75 RGB.JSON`，再切到 Configure 配置。
 
 
+
+## 开发验证
+
+配置迁移、最低亮度和颜色缩放使用 QMK 原有 GoogleTest 框架：
+
+```bash
+make test:wave75_lighting
+```
+
+固件编译后，可运行维护检查，核对闭源库调用位置、工厂测试例外及 VIA 定义：
+
+```bash
+python3 scripts/verify-wave75-indicators.py \
+  --objdump arm-none-eabi-objdump \
+  --firmware .build/hm_wave75_rgb_via.elf
+```
+
+`scripts/check-wave75-indicator-library.py` 由键盘构建自动调用，校验固定库版本。
+这两项 Python 工具使用标准库，不需要额外安装 Python 包。宿主测试不链接 ARM 厂商库。
+上述检查不能替代键盘上的连接、充电、低电量和灯光观感验证。
 
 ## 已知问题：FS026 系统计时与时钟配置不匹配
 

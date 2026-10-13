@@ -21,40 +21,37 @@
 #include <stdlib.h>
 #include "logo_speed.h"
 #include "sync_timer.h"
+#include "lighting_settings.h"
 
 // The vendor animations consume this phase; their own stepping is disabled
 // only during rendering, leaving their status indicators and settings intact.
 extern uint8_t Logo_Play_Point;
-static uint8_t logo_speed_percent = 50;
-static bool logo_follow_speed;
-static bool logo_follow_brightness;
+wave75_lighting_settings_t wave75_lighting_settings = {.logo_speed = 50, .indicator_percent = 20};
 static uint32_t logo_last_frame;
 static uint32_t logo_phase_fraction;
 
 uint8_t wave75_logo_get_speed(void) {
-    return logo_speed_percent;
+    return wave75_lighting_settings.logo_speed;
 }
 
 void wave75_logo_set_speed(uint8_t percent) {
-    logo_speed_percent = percent > 100 ? 100 : percent;
+    wave75_lighting_settings.logo_speed = percent > 100 ? 100 : percent;
 }
 
 bool wave75_logo_get_follow(bool brightness) {
-    return brightness ? logo_follow_brightness : logo_follow_speed;
+    return brightness ? wave75_lighting_settings.follow_brightness : wave75_lighting_settings.follow_speed;
 }
 
 void wave75_logo_set_follow(bool brightness, bool enabled) {
     if (brightness) {
-        logo_follow_brightness = enabled;
+        wave75_lighting_settings.follow_brightness = enabled;
     } else {
-        logo_follow_speed = enabled;
+        wave75_lighting_settings.follow_speed = enabled;
     }
 }
 
 void wave75_logo_save_speed(void) {
-    uint32_t saved = 0x4C530200u | logo_speed_percent |
-                     ((uint32_t)logo_follow_speed << 12) |
-                     ((uint32_t)logo_follow_brightness << 13);
+    uint32_t saved = wave75_lighting_encode(wave75_lighting_settings);
 #if EECONFIG_USER_DATA_SIZE > 0
     eeconfig_update_user_datablock(&saved, 0, sizeof(saved));
 #else
@@ -122,7 +119,7 @@ bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
         uint32_t elapsed = now - logo_last_frame;
         logo_last_frame = now;
         if (elapsed > 100) elapsed = 100; // Avoid jumps after sleep/wakeup.
-        uint8_t speed = logo_follow_speed ? ((uint16_t)rgb_matrix_get_speed() * 100 + 127) / 255 : logo_speed_percent;
+        uint8_t speed = wave75_lighting_settings.follow_speed ? ((uint16_t)rgb_matrix_get_speed() * 100 + 127) / 255 : wave75_lighting_settings.logo_speed;
         if (speed != 0) {
             logo_phase_fraction += elapsed * (4 + 2 * speed);
             uint32_t steps = logo_phase_fraction / 1000;
@@ -136,7 +133,7 @@ bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
     }
     uint8_t vendor_speed = Keyboard_Info.Logo_Speed;
     uint8_t vendor_brightness = Keyboard_Info.Logo_Brightness;
-    if (logo_follow_brightness) Keyboard_Info.Logo_Brightness = rgb_matrix_get_val();
+    if (wave75_lighting_settings.follow_brightness) Keyboard_Info.Logo_Brightness = rgb_matrix_get_val();
     Keyboard_Info.Logo_Speed = 0;
     User_Led_Show();
     Keyboard_Info.Logo_Speed = vendor_speed;
@@ -173,13 +170,7 @@ void keyboard_post_init_user(void) {
 #else
     saved = eeconfig_read_user();
 #endif
-    if ((saved & 0xFFFF0F00u) == 0x4C530200u && (saved & 0xFFu) <= 100) {
-        logo_speed_percent = saved & 0xFFu;
-        logo_follow_speed = (saved & (1u << 12)) != 0;
-        logo_follow_brightness = (saved & (1u << 13)) != 0;
-    } else if ((saved & 0xFFFFFF00u) == 0x4C530100u && (saved & 0xFFu) <= 100) {
-        logo_speed_percent = saved & 0xFFu;
-    } else {
+    if (!wave75_lighting_decode(saved, &wave75_lighting_settings)) {
         wave75_logo_set_speed(Keyboard_Info.Logo_Speed * 25);
     }
     logo_last_frame = timer_read32();
@@ -188,7 +179,7 @@ void keyboard_post_init_user(void) {
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {   /*键盘只要有按键按下就会调用此函数*/
     if (keycode == LOGO_SPI || keycode == LOGO_SPD) {
         if (record->event.pressed) {
-            int16_t speed = logo_speed_percent + (keycode == LOGO_SPI ? 5 : -5);
+            int16_t speed = wave75_lighting_settings.logo_speed + (keycode == LOGO_SPI ? 5 : -5);
             wave75_logo_set_speed(speed < 0 ? 0 : speed > 100 ? 100 : speed);
             wave75_logo_save_speed();
         }

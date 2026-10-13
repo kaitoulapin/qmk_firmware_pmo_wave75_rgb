@@ -10,6 +10,28 @@
 			"content":
 			[
 				{
+					"label": "Indicators",
+					"content": [
+						{
+							"label": "Allow Indicators Off",
+							"type": "toggle",
+							"content": ["id_indicator_allow_off", 2, 7]
+						},
+						{
+							"label": "Custom Indicator Brightness",
+							"type": "toggle",
+							"content": ["id_indicator_custom", 2, 8]
+						},
+						{
+							"showIf": "{id_indicator_custom} == 1",
+							"label": "Indicator Brightness (%)",
+							"type": "range",
+							"options": [0, 100],
+							"content": ["id_indicator_brightness", 2, 9]
+						}
+					]
+				},
+				{
 					"label": "logo",
 					"content":
 					[
