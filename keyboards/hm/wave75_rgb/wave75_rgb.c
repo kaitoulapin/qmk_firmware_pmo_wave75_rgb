@@ -26,7 +26,7 @@
 // The vendor animations consume this phase; their own stepping is disabled
 // only during rendering, leaving their status indicators and settings intact.
 extern uint8_t Logo_Play_Point;
-wave75_lighting_settings_t wave75_lighting_settings = {.logo_speed = 50, .indicator_percent = 20};
+wave75_lighting_settings_t wave75_lighting_settings = {.logo_speed = 50, .indicator_percent = 20, .follow_brightness = true};
 static uint32_t logo_last_frame;
 static uint32_t logo_phase_fraction;
 

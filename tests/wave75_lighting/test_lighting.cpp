@@ -69,7 +69,7 @@ TEST(Wave75Lighting, MigratesOldLogoSettings) {
             EXPECT_FALSE(s.allow_indicators_off);
             ASSERT_TRUE(wave75_lighting_decode(0x4C530100u | speed, &s));
             EXPECT_FALSE(s.follow_speed);
-            EXPECT_FALSE(s.follow_brightness);
+            EXPECT_TRUE(s.follow_brightness);
         }
     }
 }

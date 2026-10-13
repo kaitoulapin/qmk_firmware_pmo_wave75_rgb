@@ -22,7 +22,7 @@ static inline uint32_t wave75_lighting_encode(wave75_lighting_settings_t s) {
 }
 
 static inline bool wave75_lighting_decode(uint32_t saved, wave75_lighting_settings_t *s) {
-    wave75_lighting_settings_t next = {.logo_speed = saved & 0xFFu, .indicator_percent = 20};
+    wave75_lighting_settings_t next = {.logo_speed = saved & 0xFFu, .indicator_percent = 20, .follow_brightness = true};
     if (next.logo_speed > 100) return false;
     if ((saved & 0xFFF00000u) == 0x4C300000u) {
         next.indicator_percent = (saved >> 8) & 0xFFu;
