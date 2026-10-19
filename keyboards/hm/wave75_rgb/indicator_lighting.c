@@ -14,7 +14,7 @@ extern void Led_Batt_Number_Show(void);
 typedef struct {
     void (*function)(void);
     uint16_t return_offset;
-    uint8_t source_max;
+    uint8_t  source_max;
 } indicator_call_t;
 
 // Return PC = BL offset + 4, with the Thumb bit masked off. These offsets
@@ -61,12 +61,12 @@ __attribute__((noinline)) void __wrap_rgb_matrix_set_color(int index, uint8_t re
         for (uint8_t i = 0; i < sizeof(indicator_calls) / sizeof(indicator_calls[0]); i++) {
             uintptr_t start = (uintptr_t)indicator_calls[i].function & ~(uintptr_t)1;
             if (caller != start + indicator_calls[i].return_offset) continue;
-            uint8_t zone = index >= 82 ? (wave75_lighting_settings.follow_brightness ? rgb_matrix_get_val() : Keyboard_Info.Logo_Brightness) : rgb_matrix_get_val();
+            uint8_t zone       = index >= 82 ? (wave75_lighting_settings.follow_brightness ? rgb_matrix_get_val() : Keyboard_Info.Logo_Brightness) : rgb_matrix_get_val();
             uint8_t brightness = wave75_indicator_brightness(wave75_lighting_settings, zone);
             if (index >= 82) brightness = wave75_logo_limit(wave75_lighting_settings, brightness);
-            red = wave75_indicator_scale(red, brightness, indicator_calls[i].source_max);
+            red   = wave75_indicator_scale(red, brightness, indicator_calls[i].source_max);
             green = wave75_indicator_scale(green, brightness, indicator_calls[i].source_max);
-            blue = wave75_indicator_scale(blue, brightness, indicator_calls[i].source_max);
+            blue  = wave75_indicator_scale(blue, brightness, indicator_calls[i].source_max);
             break;
         }
     }

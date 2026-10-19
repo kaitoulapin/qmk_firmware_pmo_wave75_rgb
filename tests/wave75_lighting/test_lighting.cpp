@@ -5,14 +5,14 @@
 TEST(Wave75Lighting, ConfigurationRoundTrip) {
     for (unsigned flags = 0; flags < 32; flags++) {
         for (uint8_t percent : {0, 1, 5, 20, 100}) {
-            wave75_lighting_settings_t s = {};
-            s.logo_speed = percent;
-            s.indicator_percent = percent;
-            s.follow_speed = flags & 1;
-            s.follow_brightness = flags & 2;
-            s.allow_indicators_off = flags & 4;
-            s.custom_indicators = flags & 8;
-            s.limit_logo_brightness = flags & 16;
+            wave75_lighting_settings_t s        = {};
+            s.logo_speed                        = percent;
+            s.indicator_percent                 = percent;
+            s.follow_speed                      = flags & 1;
+            s.follow_brightness                 = flags & 2;
+            s.allow_indicators_off              = flags & 4;
+            s.custom_indicators                 = flags & 8;
+            s.limit_logo_brightness             = flags & 16;
             wave75_lighting_settings_t restored = {};
             ASSERT_TRUE(wave75_lighting_decode(wave75_lighting_encode(s), &restored));
             EXPECT_EQ(wave75_lighting_encode(s), wave75_lighting_encode(restored));
@@ -25,9 +25,9 @@ TEST(Wave75Lighting, FloorAndCustomBrightness) {
         for (bool custom : {false, true}) {
             for (uint8_t percent : {0, 1, 5, 20, 100}) {
                 wave75_lighting_settings_t s = {};
-                s.indicator_percent = percent;
-                s.allow_indicators_off = allow_off;
-                s.custom_indicators = custom;
+                s.indicator_percent          = percent;
+                s.allow_indicators_off       = allow_off;
+                s.custom_indicators          = custom;
                 for (unsigned zone = 0; zone <= 255; zone++) {
                     unsigned expected = custom ? (percent * 255 + 50) / 100 : zone;
                     if (!allow_off && expected < 13) expected = 13;
@@ -78,9 +78,9 @@ TEST(Wave75Lighting, MigratesOldLogoSettings) {
 
 TEST(Wave75Lighting, RejectsInvalidSettingsWithoutOverwriting) {
     wave75_lighting_settings_t s = {};
-    s.logo_speed = 50;
-    s.indicator_percent = 20;
-    uint32_t before = wave75_lighting_encode(s);
+    s.logo_speed                 = 50;
+    s.indicator_percent          = 20;
+    uint32_t before              = wave75_lighting_encode(s);
     for (uint32_t invalid : {0u, 0xFFFFFFFFu, 0x4C300065u, 0x4C306500u, 0x4C530265u, 0x4C4000E5u, 0x4C406500u}) {
         EXPECT_FALSE(wave75_lighting_decode(invalid, &s));
         EXPECT_EQ(wave75_lighting_encode(s), before);
@@ -112,9 +112,9 @@ TEST(Wave75Lighting, LogoLimitDoesNotRewriteRequestedBrightness) {
     for (bool follow : {false, true}) {
         for (bool custom : {false, true}) {
             wave75_lighting_settings_t s = {};
-            s.follow_brightness = follow;
-            s.custom_indicators = custom;
-            s.indicator_percent = 100;
+            s.follow_brightness          = follow;
+            s.custom_indicators          = custom;
+            s.indicator_percent          = 100;
             for (uint8_t requested : {0, 1, 140, 160, 254, 255}) {
                 s.limit_logo_brightness = true;
                 EXPECT_EQ(wave75_logo_limit(s, requested), requested > 160 ? 160 : requested);

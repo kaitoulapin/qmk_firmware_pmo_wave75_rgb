@@ -25,10 +25,10 @@
 
 // The vendor animations consume this phase; their own stepping is disabled
 // only during rendering, leaving their status indicators and settings intact.
-extern uint8_t Logo_Play_Point;
+extern uint8_t             Logo_Play_Point;
 wave75_lighting_settings_t wave75_lighting_settings = {.logo_speed = 50, .indicator_percent = 20, .follow_brightness = true, .limit_logo_brightness = true};
-static uint32_t logo_last_frame;
-static uint32_t logo_phase_fraction;
+static uint32_t            logo_last_frame;
+static uint32_t            logo_phase_fraction;
 
 uint8_t wave75_logo_get_speed(void) {
     return wave75_lighting_settings.logo_speed;
@@ -91,16 +91,16 @@ void Logo_Pwm_Ds_Updata(uint8_t phase) {
     Logo_Pwm_B = wave75_logo_ds_channel(Logo_Pwm_B, Keyboard_Info.Logo_Saturation, phase, Keyboard_Info.Logo_Brightness);
 }
 
-uint8_t wave75_reactive_hue[RGB_MATRIX_LED_COUNT];
+uint8_t  wave75_reactive_hue[RGB_MATRIX_LED_COUNT];
 uint32_t wave75_reactive_birth[RGB_MATRIX_LED_COUNT];
-bool wave75_reactive_active[RGB_MATRIX_LED_COUNT];
+bool     wave75_reactive_active[RGB_MATRIX_LED_COUNT];
 
 uint16_t wave75_reactive_duration_ticks(uint16_t milliseconds) {
     // Correct only this effect's duration, without changing the vendor's OS tick.
     // The FS026 port records the AHB clock during HAL initialization.
     extern unsigned int SystemFrequency_AHBClk;
-    const uint32_t clock_khz = SystemFrequency_AHBClk / 1000;
-    const uint32_t reload = SysTick->LOAD + 1;
+    const uint32_t      clock_khz = SystemFrequency_AHBClk / 1000;
+    const uint32_t      reload    = SysTick->LOAD + 1;
     if (!clock_khz || !reload) return milliseconds;
     uint32_t ticks = ((uint32_t)milliseconds * clock_khz + reload - 1) / reload;
     return ticks ? ticks : 1;
@@ -147,9 +147,9 @@ led_config_t g_led_config = { {
 bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
     // Advance once per frame even if QMK renders the LED buffer in chunks.
     if (led_min == 0) {
-        uint32_t now = timer_read32();
+        uint32_t now     = timer_read32();
         uint32_t elapsed = now - logo_last_frame;
-        logo_last_frame = now;
+        logo_last_frame  = now;
         if (elapsed > 100) elapsed = 100; // Avoid jumps after sleep/wakeup.
         uint8_t speed = wave75_lighting_settings.follow_speed ? ((uint16_t)rgb_matrix_get_speed() * 100 + 127) / 255 : wave75_lighting_settings.logo_speed;
         if (speed != 0) {
@@ -163,18 +163,18 @@ bool rgb_matrix_indicators_advanced_user(uint8_t led_min, uint8_t led_max) {
     if (Keyboard_Info.Logo_Mode == LOGO_BREATH_MODE || Keyboard_Info.Logo_Mode == LOGO_WAVE_DS_MODE) {
         Logo_Play_Point %= 128;
     }
-    uint8_t vendor_speed = Keyboard_Info.Logo_Speed;
+    uint8_t vendor_speed      = Keyboard_Info.Logo_Speed;
     uint8_t vendor_brightness = Keyboard_Info.Logo_Brightness;
     if (wave75_lighting_settings.follow_brightness) Keyboard_Info.Logo_Brightness = rgb_matrix_get_val();
     Keyboard_Info.Logo_Brightness = wave75_logo_limit(wave75_lighting_settings, Keyboard_Info.Logo_Brightness);
-    Keyboard_Info.Logo_Speed = 0;
+    Keyboard_Info.Logo_Speed      = 0;
     User_Led_Show();
-    Keyboard_Info.Logo_Speed = vendor_speed;
+    Keyboard_Info.Logo_Speed      = vendor_speed;
     Keyboard_Info.Logo_Brightness = vendor_brightness;
     return false;
 }
 
-void notify_usb_device_state_change_user(struct usb_device_state usb_state)  {
+void notify_usb_device_state_change_user(struct usb_device_state usb_state) {
     if (Keyboard_Info.Key_Mode == QMK_USB_MODE) {
         if (usb_state.configure_state == USB_DEVICE_STATE_CONFIGURED) {
             Usb_If_Ok_Led = true;
@@ -209,12 +209,14 @@ void keyboard_post_init_user(void) {
     logo_last_frame = timer_read32();
 }
 
-bool process_record_user(uint16_t keycode, keyrecord_t *record) {   /*键盘只要有按键按下就会调用此函数*/
+bool process_record_user(uint16_t keycode, keyrecord_t *record) { /*键盘只要有按键按下就会调用此函数*/
     if (keycode == LOGO_VAI || keycode == LOGO_VAD) {
         if (record->event.pressed) {
             if (wave75_lighting_settings.follow_brightness) {
-                if (keycode == LOGO_VAI) rgb_matrix_increase_val();
-                else rgb_matrix_decrease_val();
+                if (keycode == LOGO_VAI)
+                    rgb_matrix_increase_val();
+                else
+                    rgb_matrix_decrease_val();
             } else {
                 wave75_logo_set_brightness(wave75_brightness_step(wave75_logo_get_brightness(), keycode == LOGO_VAI));
                 // Use the archive's save command without its brightness clamp.
@@ -222,7 +224,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {   /*键盘只�
                 User_Via_Qmk_Logo_Command(save, sizeof(save));
             }
         }
-        Usb_Change_Mode_Delay = 0;
+        Usb_Change_Mode_Delay  = 0;
         Usb_Change_Mode_Wakeup = false;
         return false;
     }
@@ -232,7 +234,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {   /*键盘只�
             wave75_logo_set_speed(speed < 0 ? 0 : speed > 100 ? 100 : speed);
             wave75_logo_save_speed();
         }
-        Usb_Change_Mode_Delay = 0;
+        Usb_Change_Mode_Delay  = 0;
         Usb_Change_Mode_Wakeup = false;
         return false;
     }
@@ -240,15 +242,14 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {   /*键盘只�
         uint8_t leds[RGB_MATRIX_LED_COUNT];
         uint8_t count = rgb_matrix_map_row_column_to_led(record->event.key.row, record->event.key.col, leds);
         for (uint8_t i = 0; i < count; i++) {
-            uint8_t led = leds[i];
-            wave75_reactive_hue[led] = (uint8_t)rand();
-            wave75_reactive_birth[led] = sync_timer_read32();
+            uint8_t led                 = leds[i];
+            wave75_reactive_hue[led]    = (uint8_t)rand();
+            wave75_reactive_birth[led]  = sync_timer_read32();
             wave75_reactive_active[led] = true;
         }
     }
-    Usb_Change_Mode_Delay = 0;                                      /*只要有按键就不会进入休眠*/
+    Usb_Change_Mode_Delay  = 0; /*只要有按键就不会进入休眠*/
     Usb_Change_Mode_Wakeup = false;
 
     return Key_Value_Dispose(keycode, record);
 }
-
