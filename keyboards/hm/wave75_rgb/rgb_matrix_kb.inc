@@ -324,25 +324,31 @@ static bool RANDOM_REACTIVE(effect_params_t *params) {
     const uint16_t duration_ms = 1000 - (uint32_t)rgb_matrix_config.speed * 700 / 255;
     const uint16_t duration = wave75_reactive_duration_ticks(duration_ms);
     for (uint8_t i = led_min; i < led_max; i++) {
-        if (params->init) wave75_reactive_active[i] = false;
+        uint32_t envelope = 65535u;
+        if (wave75_reactive_state[i] == WAVE75_REACTIVE_FADING) {
+            // A release can arrive between chunks, after this frame's timestamp.
+            int32_t age = (int32_t)(now - wave75_reactive_release_time[i]);
+            uint32_t elapsed = age < 0 ? 0 : (uint32_t)age;
+            if (elapsed >= duration) {
+                wave75_reactive_state[i] = WAVE75_REACTIVE_OFF;
+            } else {
+                // Keep the squared decay at 16-bit precision until RGB output.
+                uint32_t remaining = ((duration - elapsed) * 65535u) / duration;
+                envelope = (remaining * remaining + 32767u) / 65535u;
+            }
+        }
         RGB_MATRIX_TEST_LED_FLAGS();
-        // A press can arrive between chunks, after this frame's timestamp.
-        int32_t age = (int32_t)(now - wave75_reactive_birth[i]);
-        const uint32_t elapsed = age < 0 ? 0 : (uint32_t)age;
-        if (!wave75_reactive_active[i] || elapsed >= duration) {
-            wave75_reactive_active[i] = false;
+        if (wave75_reactive_state[i] == WAVE75_REACTIVE_OFF) {
             rgb_matrix_set_color(i, 0, 0, 0);
             continue;
         }
-        // Keep the envelope at 16-bit precision until the final RGB output.
-        // A squared decay shortens the visibly stepped, very dim tail.
-        const uint32_t remaining = ((duration - elapsed) * 65535u) / duration;
-        const uint32_t envelope = (remaining * remaining + 32767u) / 65535u;
         hsv_t hsv = {wave75_reactive_hue[i], 255, rgb_matrix_config.hsv.v};
         rgb_t rgb = rgb_matrix_hsv_to_rgb(hsv);
-        rgb.r = ((uint32_t)rgb.r * envelope + 32767u) / 65535u;
-        rgb.g = ((uint32_t)rgb.g * envelope + 32767u) / 65535u;
-        rgb.b = ((uint32_t)rgb.b * envelope + 32767u) / 65535u;
+        if (envelope != 65535u) {
+            rgb.r = ((uint32_t)rgb.r * envelope + 32767u) / 65535u;
+            rgb.g = ((uint32_t)rgb.g * envelope + 32767u) / 65535u;
+            rgb.b = ((uint32_t)rgb.b * envelope + 32767u) / 65535u;
+        }
         rgb_matrix_set_color(i, rgb.r, rgb.g, rgb.b);
     }
     return rgb_matrix_check_finished_leds(led_max);

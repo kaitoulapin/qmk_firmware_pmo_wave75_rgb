@@ -92,8 +92,47 @@ void Logo_Pwm_Ds_Updata(uint8_t phase) {
 }
 
 uint8_t  wave75_reactive_hue[RGB_MATRIX_LED_COUNT];
-uint32_t wave75_reactive_birth[RGB_MATRIX_LED_COUNT];
-bool     wave75_reactive_active[RGB_MATRIX_LED_COUNT];
+uint32_t wave75_reactive_release_time[RGB_MATRIX_LED_COUNT];
+uint8_t  wave75_reactive_state[RGB_MATRIX_LED_COUNT];
+
+void matrix_scan_user(void) {
+    static matrix_row_t previous[MATRIX_ROWS];
+    static bool active;
+
+    if (!rgb_matrix_is_enabled() || rgb_matrix_get_mode() != RGB_MATRIX_CUSTOM_RANDOM_REACTIVE) {
+        if (active) {
+            memset(previous, 0, sizeof(previous));
+            memset(wave75_reactive_state, WAVE75_REACTIVE_OFF, sizeof(wave75_reactive_state));
+            active = false;
+        }
+        return;
+    }
+    active = true;
+
+    // Use debounced switch transitions, including keys that never emit a keycode.
+    for (uint8_t row = 0; row < MATRIX_ROWS; row++) {
+        matrix_row_t current = matrix_get_row(row);
+        matrix_row_t changed = current ^ previous[row];
+        if (!changed) continue;
+        previous[row] = current;
+        for (uint8_t col = 0; col < MATRIX_COLS; col++) {
+            matrix_row_t mask = (matrix_row_t)1 << col;
+            if (!(changed & mask)) continue;
+            uint8_t leds[RGB_MATRIX_LED_COUNT];
+            uint8_t count = rgb_matrix_map_row_column_to_led(row, col, leds);
+            for (uint8_t i = 0; i < count; i++) {
+                uint8_t led = leds[i];
+                if (current & mask) {
+                    wave75_reactive_hue[led] = (uint8_t)rand();
+                    wave75_reactive_state[led] = WAVE75_REACTIVE_HELD;
+                } else if (wave75_reactive_state[led] == WAVE75_REACTIVE_HELD) {
+                    wave75_reactive_release_time[led] = sync_timer_read32();
+                    wave75_reactive_state[led] = WAVE75_REACTIVE_FADING;
+                }
+            }
+        }
+    }
+}
 
 uint16_t wave75_reactive_duration_ticks(uint16_t milliseconds) {
     // Correct only this effect's duration, without changing the vendor's OS tick.
@@ -237,16 +276,6 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) { /*键盘只要
         Usb_Change_Mode_Delay  = 0;
         Usb_Change_Mode_Wakeup = false;
         return false;
-    }
-    if (record->event.pressed && record->event.key.row < MATRIX_ROWS && record->event.key.col < MATRIX_COLS && rgb_matrix_get_mode() == RGB_MATRIX_CUSTOM_RANDOM_REACTIVE) {
-        uint8_t leds[RGB_MATRIX_LED_COUNT];
-        uint8_t count = rgb_matrix_map_row_column_to_led(record->event.key.row, record->event.key.col, leds);
-        for (uint8_t i = 0; i < count; i++) {
-            uint8_t led                 = leds[i];
-            wave75_reactive_hue[led]    = (uint8_t)rand();
-            wave75_reactive_birth[led]  = sync_timer_read32();
-            wave75_reactive_active[led] = true;
-        }
     }
     Usb_Change_Mode_Delay  = 0; /*只要有按键就不会进入休眠*/
     Usb_Change_Mode_Wakeup = false;
